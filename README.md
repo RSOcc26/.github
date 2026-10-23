@@ -11,5 +11,6 @@ GitHub uses these files in every repository that does not have its own copy.
 | `SUPPORT.md` | Where to ask questions |
 | `.github/ISSUE_TEMPLATE/` | Bug report and feature request forms |
 | `.github/pull_request_template.md` | The checklist every pull request starts from |
+| `docs/` | CompanyCentral architecture, ADRs and RSO requirements traceability |
 
 A repository overrides any of these by adding its own file with the same name.

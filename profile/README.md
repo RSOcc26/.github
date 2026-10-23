@@ -1,32 +1,53 @@
-# CompanyHub
+# CompanyCentral
 
-**A multi-tenant, cloud-native microservices platform for running a company's
-work in one place** — users and companies, app access, a shared mailbox and
-tasks, and business apps built on top of them.
+**A multi-tenant, cloud-native platform for small and medium-sized
+manufacturing companies.** One Hub for users and companies, with applications
+switched on per company: work-order planning, inventory and production
+execution.
 
 Built for the *Cloud Computing Services* course (Računalniške storitve v oblaku,
 RSO 2026/27) at the Faculty of Computer and Information Science, University of Ljubljana.
+
+> **Status:** architecture defined, repositories scaffolded. No service is
+> implemented yet. See the [requirements traceability](https://github.com/RSOcc26/.github/blob/main/docs/rso-requirements.md).
 
 ## Architecture
 
 ```
 Browser ──▶ Ingress ──┬── /       ──▶ web
-                      └── /api/*  ──▶ gateway ──▶ services ──▶ PostgreSQL
-                                                     (one database per service)
+                      └── /api/*  ──▶ gateway ──REST──▶ services ──▶ PostgreSQL
+                                                          │        (one database per service)
+                                                          └──events──▶ RabbitMQ
 ```
 
-- Every service owns its data and is deployed independently on Kubernetes.
-- Each company (tenant) is isolated in its own database schema.
-- Services talk through internal APIs and events; only the gateway is exposed.
+- Every service owns its data and is deployed independently on Kubernetes with Helm.
+- Tenants share tables, isolated by `tenant_id` and PostgreSQL row-level security.
+- REST (OpenAPI 3.1) for questions, events with a transactional outbox for facts.
+- Only the gateway is exposed; it validates the user's membership in the company before anything reaches a service.
+
+Details: [architecture](https://github.com/RSOcc26/.github/blob/main/docs/architecture.md) ·
+[decisions (ADRs)](https://github.com/RSOcc26/.github/tree/main/docs/adr)
 
 ## Repositories
 
+**First milestone**
+
 | Repository | Description |
 |---|---|
-| [web](https://github.com/RSOcc26/web) | Frontend: the Hub shell and every app's user interface |
+| [web](https://github.com/RSOcc26/web) | React frontend: Hub shell, company switcher, application UIs |
 | [gateway](https://github.com/RSOcc26/gateway) | API gateway: authentication, tenant context, routing, rate limits |
-| [service-identity](https://github.com/RSOcc26/service-identity) | Users, companies, memberships, invitations, sessions |
-| [service-access](https://github.com/RSOcc26/service-access) | Which apps each company and user may use, and with which role |
+| [service-identity](https://github.com/RSOcc26/service-identity) | Users, companies, memberships, invitations |
+| [service-access](https://github.com/RSOcc26/service-access) | Application registry, applications per company, roles, permissions, access groups |
+| [service-workflow](https://github.com/RSOcc26/service-workflow) | Catalog of articles and operations, projects, work orders, release |
+| [service-inventory](https://github.com/RSOcc26/service-inventory) | Stock locations, material reservations, issuing, stock movements |
+| [service-production](https://github.com/RSOcc26/service-production) | Production execution, quantities, scrap, work-order completion |
+| [deploy](https://github.com/RSOcc26/deploy) | Docker Compose, Kubernetes, Helm charts, monitoring |
+| [.github](https://github.com/RSOcc26/.github) | Organization conventions, templates, reusable CI, architecture docs |
+
+**Deferred** (planned for later development)
+
+| Repository | Description |
+|---|---|
 | [service-audit](https://github.com/RSOcc26/service-audit) | The activity log |
 | [service-messaging](https://github.com/RSOcc26/service-messaging) | The Hub mailbox |
 | [service-tasks](https://github.com/RSOcc26/service-tasks) | The shared task model |
