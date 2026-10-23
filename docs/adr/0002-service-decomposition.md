@@ -25,8 +25,9 @@ The first milestone consists of:
 | `gateway` | Single API entry point |
 | `web` | React frontend |
 
-`service-audit`, `service-messaging` and `service-tasks` are **deferred**: their
-repositories are kept, marked as planned, and not developed in this milestone.
+The platform services `service-audit`, `service-messaging` and `service-tasks`
+are **dropped from the plan**; their scaffold repositories (no code) were
+deleted. They can be recreated later from the same conventions.
 
 Identity and Access stay separate services: who someone is (and to which
 company they belong) changes for different reasons than what they may do.
@@ -36,5 +37,5 @@ company they belong) changes for different reasons than what they may do.
 - Five application services give a margin above the required four.
 - The work-order flow (release → reserve → execute → complete) exercises both
   REST and events across three services.
-- Deferred services may be picked up later without restructuring. Until then,
-  no first-milestone service depends on them.
+- Audit, messaging or tasks can be added later as new services. No
+  first-milestone service depends on them.

@@ -44,13 +44,8 @@ Details: [architecture](https://github.com/RSOcc26/.github/blob/main/docs/archit
 | [deploy](https://github.com/RSOcc26/deploy) | Docker Compose, Kubernetes, Helm charts, monitoring |
 | [.github](https://github.com/RSOcc26/.github) | Organization conventions, templates, reusable CI, architecture docs |
 
-**Deferred** (planned for later development)
-
-| Repository | Description |
-|---|---|
-| [service-audit](https://github.com/RSOcc26/service-audit) | The activity log |
-| [service-messaging](https://github.com/RSOcc26/service-messaging) | The Hub mailbox |
-| [service-tasks](https://github.com/RSOcc26/service-tasks) | The shared task model |
+An activity log, a Hub mailbox and shared tasks are out of scope for now and
+may be added later as new services.
 
 ## How we work
 

@@ -61,9 +61,10 @@ Supporting repositories:
 | [`deploy`](https://github.com/RSOcc26/deploy) | Docker Compose, Kubernetes manifests, Helm charts, environment values, monitoring |
 | [`.github`](https://github.com/RSOcc26/.github) | Organization conventions, templates, reusable CI workflows, this document |
 
-Deferred (kept, not part of the first milestone, see [ADR-0002](adr/0002-service-decomposition.md)):
-`service-audit` (activity log), `service-messaging` (Hub mailbox),
-`service-tasks` (shared tasks).
+Out of scope for now (see [ADR-0002](adr/0002-service-decomposition.md)): an
+activity log (audit), a Hub mailbox (messaging) and shared tasks. Their
+earlier scaffold repositories were removed; they can be added later as new
+services following the same conventions.
 
 Data a service needs from another service is either requested when needed
 (REST) or kept as a local, read-only copy built from events. Such copies hold
