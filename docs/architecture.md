@@ -40,7 +40,7 @@ Browser ──HTTPS──▶ Ingress ──┬── /       ──▶ web (stat
 
 ## 3. Services and data ownership
 
-Every service owns its PostgreSQL database ([ADR-0003](adr/0003-database-per-service.md)).
+Every service owns its PostgreSQL database ([ADR-0001](adr/0001-multi-tenancy.md)).
 No service reads or writes another service's database; other services use its
 REST API or consume its events.
 
@@ -61,11 +61,6 @@ Supporting repositories:
 | [`deploy`](https://github.com/RSOcc26/deploy) | Docker Compose, Kubernetes manifests, Helm charts, environment values, monitoring |
 | [`.github`](https://github.com/RSOcc26/.github) | Organization conventions, templates, reusable CI workflows, this document |
 
-Out of scope for now (see [ADR-0002](adr/0002-service-decomposition.md)): an
-activity log (audit), a Hub mailbox (messaging) and shared tasks. Their
-earlier scaffold repositories were removed; they can be added later as new
-services following the same conventions.
-
 Data a service needs from another service is either requested when needed
 (REST) or kept as a local, read-only copy built from events. Such copies hold
 only the fields the service needs, and the owning service stays the source of
@@ -76,7 +71,7 @@ temporarily unavailable.
 ## 4. Synchronous communication (REST)
 
 - REST/JSON over HTTP inside the cluster; every service documents its API in an
-  **OpenAPI 3.1** document served at `/api-docs` ([ADR-0005](adr/0005-rest-and-openapi.md)).
+  **OpenAPI 3.1** document served at `/api-docs`.
 - REST is used for **questions and commands that need an immediate answer**:
   "is this user a member of this company?", "issue this material now".
 - Public paths: `/api/<service>/v1/...` on the gateway, which forwards to the
@@ -97,7 +92,7 @@ Every service exposes:
 
 ## 5. Asynchronous communication (events)
 
-- **RabbitMQ** carries domain events ([ADR-0006](adr/0006-rabbitmq-transactional-outbox.md)).
+- **RabbitMQ** carries domain events.
 - Events state **facts that already happened** ("work order released"). They
   are not commands.
 - **Transactional outbox:** a service writes the event to its own `outbox` table
@@ -144,10 +139,10 @@ when implemented.
 
 ## 6. Multi-tenancy
 
-See [ADR-0004](adr/0004-multi-tenancy-shared-tables-rls.md).
+See [ADR-0001](adr/0001-multi-tenancy.md).
 
 - **Shared, tenant-scoped tables.** Every tenant-owned row has a `tenant_id`
-  column. This replaces the earlier schema-per-tenant proposal.
+  column.
 - **Row-level security** in PostgreSQL as a second line of defense. The service
   sets `app.tenant_id` per transaction (`SET LOCAL`), and RLS policies restrict
   every tenant-owned table to that tenant. The application role is not the table
@@ -168,7 +163,7 @@ See [ADR-0004](adr/0004-multi-tenancy-shared-tables-rls.md).
 | Concern | Where |
 |---|---|
 | TLS termination | Ingress (cert-manager certificates) |
-| Authenticating the user (credentials, sessions or tokens) | Identity, or an external OIDC provider. **Open decision**, see [ADR-0007](adr/0007-identity-provider-open-decision.md) |
+| Authenticating the user (credentials, sessions or tokens) | Identity, or an external OIDC provider. **Open decision**, see [ADR-0002](adr/0002-identity-provider.md) |
 | Validating the session/token on every request | gateway |
 | Validating tenant membership and building the tenant context | gateway (membership from Identity, cached briefly) |
 | Coarse authorization ("may this user use this application in this tenant?") | gateway, asking Access |
@@ -177,10 +172,11 @@ See [ADR-0004](adr/0004-multi-tenancy-shared-tables-rls.md).
 
 The gateway removes client-supplied identity and tenant headers before
 forwarding. Whether the gateway stays custom (Node.js) or becomes Kong or
-Traefik is evaluated in the gateway repository's ADRs. Until decided, the
-gateway is a thin custom Node.js service.
+Traefik is evaluated in the gateway repository
+(`docs/request-handling.md`). The gateway starts as a thin custom Node.js
+service.
 
-Only **one** authentication system is implemented. ADR-0007 decides which one.
+Only **one** authentication system is implemented. ADR-0002 decides which one.
 
 ## 8. Deployment
 
@@ -200,8 +196,9 @@ Only **one** authentication system is implemented. ADR-0007 decides which one.
 
 Target CI/CD pipeline: lint and test → build → container image → publish to
 GHCR → deploy with Helm. The first two steps run through the organization's
-reusable CI workflow. The others are added as services become buildable (see
-[ADR-0009](adr/0009-kubernetes-helm-ghcr.md)).
+reusable CI workflow, and images are published to GHCR by the reusable publish
+workflow once a repository has a `Dockerfile`. The Helm deploy step is added
+when a cluster exists.
 
 ## 9. Main end-to-end scenario
 
@@ -245,11 +242,12 @@ carries the tenant ID and the correlation ID of the request that caused it.
 ## 11. Decisions and future options
 
 Architecture decision records: [docs/adr](adr/). Service-specific decisions
-live in each repository's `docs/adr/`.
+go in each repository's `docs/adr/`.
 
 Not part of the MVP; to be reconsidered when there is a concrete need:
 
-- Kafka instead of RabbitMQ (event replay, high-volume streams)
+- An activity log, a Hub mailbox and shared tasks as additional platform services
+- Kafka for event replay or high-volume streams
 - gRPC between services
 - GraphQL aggregation for the frontend
 - Event sourcing for production execution
