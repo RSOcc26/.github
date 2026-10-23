@@ -30,8 +30,6 @@ Details: [architecture](https://github.com/RSOcc26/.github/blob/main/docs/archit
 
 ## Repositories
 
-**First milestone**
-
 | Repository | Description |
 |---|---|
 | [web](https://github.com/RSOcc26/web) | React frontend: Hub shell, company switcher, application UIs |
@@ -43,9 +41,6 @@ Details: [architecture](https://github.com/RSOcc26/.github/blob/main/docs/archit
 | [service-production](https://github.com/RSOcc26/service-production) | Production execution, quantities, scrap, work-order completion |
 | [deploy](https://github.com/RSOcc26/deploy) | Docker Compose, Kubernetes, Helm charts, monitoring |
 | [.github](https://github.com/RSOcc26/.github) | Organization conventions, templates, reusable CI, architecture docs |
-
-An activity log, a Hub mailbox and shared tasks are out of scope for now and
-may be added later as new services.
 
 ## How we work
 
