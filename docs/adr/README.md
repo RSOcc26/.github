@@ -1,7 +1,7 @@
 # Architecture decision records
 
 Cross-cutting decisions for CompanyCentral that involve a real trade-off.
-Stack defaults (Node.js, React, PostgreSQL, REST/OpenAPI, RabbitMQ, Kubernetes,
+Stack defaults (Node.js, React, PostgreSQL, REST/OpenAPI, Apache Kafka, Kubernetes,
 Helm, GHCR) are described in [architecture.md](../architecture.md) instead.
 
 Each record states its context, the options, the decision and the

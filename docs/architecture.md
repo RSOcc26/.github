@@ -28,7 +28,7 @@ Browser ──HTTPS──▶ Ingress ──┬── /       ──▶ web (stat
                          │                                   ├──▶ service-inventory  ──▶ inventory DB
                          │                                   └──▶ service-production ──▶ production DB
                          │                                                                     │
-                         │   services ──outbox──▶ RabbitMQ (topic exchange) ──▶ consuming services
+                         │   services ──outbox──▶ Apache Kafka (topics) ──▶ consumer groups
                          └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -92,19 +92,39 @@ Every service exposes:
 
 ## 5. Asynchronous communication (events)
 
-- **RabbitMQ** carries domain events.
+- **Apache Kafka** (KRaft mode, no ZooKeeper) carries domain events.
 - Events state **facts that already happened** ("work order released"). They
   are not commands.
 - **Transactional outbox:** a service writes the event to its own `outbox` table
   in the same database transaction as the state change. A relay publishes
-  pending rows to RabbitMQ and marks them sent. Delivery is therefore
-  at-least-once.
+  pending rows to Kafka (idempotent producer, `acks=all`) and marks them
+  sent. Delivery is therefore at-least-once.
 - **Idempotent consumers:** each consumer records processed event IDs
-  (`inbox` table) and ignores duplicates. Messages that keep failing go to a
-  dead-letter queue after a bounded number of retries.
-- Topology: one durable topic exchange `companycentral.events`. The routing key
-  is the event type. Each consuming service has its own durable queue per
-  purpose, for example `production.work-orders`.
+  (`inbox` table) in the same transaction as its own change, and commits the
+  Kafka offset only afterwards. Duplicates are ignored. Events that keep
+  failing go to the consumer's dead-letter topic after a bounded number of
+  retries.
+- **Topics:** one topic per producing service, `<service>.events` (for example
+  `workflow.events`). The message key is the aggregate ID (for example the
+  work-order ID), so all events of one aggregate stay in order within a
+  partition. The event type is in the envelope.
+- **Consumer groups:** each consuming service reads with its own group
+  (`production`, `inventory`, …), so every service gets every event and can
+  scale out across partitions.
+- **Retention and replay:** topics keep events for 7 days. A service that was
+  down catches up from its committed offset; a new consumer can replay
+  history within the retention window.
+- **Dead-letter topics:** `<service>.dlt` per consuming service.
+- **Access control (Kubernetes):** each service has its own SCRAM user. ACLs
+  allow writing only its own topic and reading only the topics it consumes.
+
+| Topic | Producer | Consumer groups |
+|---|---|---|
+| `identity.events` | identity | access, gateway |
+| `access.events` | access | gateway |
+| `workflow.events` | workflow | production, inventory |
+| `inventory.events` | inventory | production |
+| `production.events` | production | workflow, inventory |
 
 Event envelope (JSON):
 
@@ -182,7 +202,7 @@ Only **one** authentication system is implemented. ADR-0002 decides which one.
 
 | Environment | How | Purpose |
 |---|---|---|
-| Local | Docker Compose in `deploy/compose`: PostgreSQL, RabbitMQ and the services | Development, integration tests |
+| Local | Docker Compose in `deploy/compose`: PostgreSQL, Kafka and the services | Development, integration tests |
 | Cloud (dev / prod) | Kubernetes + Helm charts from `deploy/helm`, images from GHCR | Public deployment required by RSO |
 
 - Images: `ghcr.io/rsocc26/<repository>:<version>`, built by GitHub Actions.
@@ -247,7 +267,6 @@ go in each repository's `docs/adr/`.
 Not part of the MVP; to be reconsidered when there is a concrete need:
 
 - An activity log, a Hub mailbox and shared tasks as additional platform services
-- Kafka for event replay or high-volume streams
 - gRPC between services
 - GraphQL aggregation for the frontend
 - Event sourcing for production execution
