@@ -1,0 +1,73 @@
+# Shared CI for every RSOcc26 repository.
+# Called from each repository's .github/workflows/ci.yml.
+name: Reusable CI
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  pr-title:
+    name: PR title
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            refactor
+            test
+            chore
+            ci
+            perf
+            build
+
+  editorconfig:
+    name: EditorConfig
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: editorconfig-checker/action-editorconfig-checker@51f63319f592f97930c73d9c46184d20bd206393 # v3.0.0
+      - run: editorconfig-checker
+
+  node:
+    name: Lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: No Node.js project yet
+        if: hashFiles('package.json') == ''
+        run: echo "No package.json; skipping lint, test and build."
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: hashFiles('package.json') != ''
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - if: hashFiles('package.json') != ''
+        run: npm ci
+      - if: hashFiles('package.json') != ''
+        run: npm run lint --if-present
+      - if: hashFiles('package.json') != ''
+        run: npm test --if-present
+      - if: hashFiles('package.json') != ''
+        run: npm run build --if-present
+
+  docker:
+    name: Container image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: No Dockerfile yet
+        if: hashFiles('Dockerfile') == ''
+        run: echo "No Dockerfile; skipping image build."
+      - name: Build image
+        if: hashFiles('Dockerfile') != ''
+        run: docker build --tag "${{ github.event.repository.name }}:ci" .
