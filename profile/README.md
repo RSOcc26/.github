@@ -35,8 +35,11 @@ Browser ──▶ Ingress ──┬── /       ──▶ web
 
 - `main` is protected: changes land only through reviewed pull requests, squash-merged.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/); each repository keeps a `CHANGELOG.md`.
+- Everyone follows the [code of conduct](https://github.com/RSOcc26/.github/blob/main/CODE_OF_CONDUCT.md).
 - See [CONTRIBUTING.md](https://github.com/RSOcc26/.github/blob/main/CONTRIBUTING.md) for details.
 
 ## Team
 
 [@Gregx12](https://github.com/Gregx12) · [@jp7316](https://github.com/jp7316)
+
+All repositories are licensed under the [MIT License](https://github.com/RSOcc26/.github/blob/main/LICENSE).

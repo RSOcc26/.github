@@ -2,6 +2,7 @@
 
 These rules apply to every repository in RSOcc26 unless it has its own
 `CONTRIBUTING.md`.
+By taking part you agree to the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## Workflow
 
