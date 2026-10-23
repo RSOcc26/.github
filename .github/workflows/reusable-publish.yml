@@ -1,0 +1,74 @@
+# Shared image publishing for every RSOcc26 repository with a Dockerfile.
+# Builds the image and pushes it to GitHub Container Registry as
+# ghcr.io/rsocc26/<repository>. Call it after CI passes, on pushes to main
+# and on version tags:
+#
+#   publish:
+#     needs: checks
+#     if: github.event_name == 'push'
+#     permissions:
+#       contents: read
+#       packages: write
+#     uses: RSOcc26/.github/.github/workflows/reusable-publish.yml@main
+name: Reusable publish
+
+on:
+  workflow_call:
+    outputs:
+      image:
+        description: Image name without tag; empty when nothing was published.
+        value: ${{ jobs.image.outputs.image }}
+      digest:
+        description: Digest of the pushed image; empty when nothing was published.
+        value: ${{ jobs.image.outputs.digest }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    name: Publish image
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.name.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: No Dockerfile yet
+        if: hashFiles('Dockerfile') == ''
+        run: echo "No Dockerfile; nothing to publish."
+      - name: Image name
+        id: name
+        if: hashFiles('Dockerfile') != ''
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: echo "image=ghcr.io/${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        if: hashFiles('Dockerfile') != ''
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        if: hashFiles('Dockerfile') != ''
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        id: meta
+        if: hashFiles('Dockerfile') != ''
+        with:
+          images: ${{ steps.name.outputs.image }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        id: build
+        if: hashFiles('Dockerfile') != ''
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
