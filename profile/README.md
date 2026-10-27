@@ -17,7 +17,7 @@ RSO 2026/27) at the Faculty of Computer and Information Science, University of L
 Browser ──▶ Ingress ──┬── /       ──▶ web
                       └── /api/*  ──▶ gateway ──REST──▶ services ──▶ PostgreSQL
                                                           │        (one database per service)
-                                                          └──events──▶ RabbitMQ
+                                                          └──events──▶ Apache Kafka
 ```
 
 - Every service owns its data and is deployed independently on Kubernetes with Helm.
