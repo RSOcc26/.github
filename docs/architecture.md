@@ -163,7 +163,7 @@ See [ADR-0001](adr/0001-multi-tenancy.md).
 | Concern | Where |
 |---|---|
 | TLS termination | Ingress (cert-manager certificates) |
-| Authenticating the user (credentials, sessions or tokens) | Identity, or an external OIDC provider. **Open decision**, see [ADR-0002](adr/0002-identity-provider.md) |
+| Authenticating the user (credentials, sessions or tokens) | Keycloak (external OIDC provider), see [ADR-0002](adr/0002-identity-provider.md) |
 | Validating the session/token on every request | gateway |
 | Validating tenant membership and building the tenant context | gateway (membership from Identity, cached briefly) |
 | Coarse authorization ("may this user use this application in this tenant?") | gateway, asking Access |
@@ -176,13 +176,14 @@ Traefik is evaluated in the gateway repository
 (`docs/request-handling.md`). The gateway starts as a thin custom Node.js
 service.
 
-Only **one** authentication system is implemented. ADR-0002 decides which one.
+Only **one** authentication system is implemented: Keycloak, as decided in
+ADR-0002. CompanyCentral stores no passwords or credentials.
 
 ## 8. Deployment
 
 | Environment | How | Purpose |
 |---|---|---|
-| Local | Docker Compose in `deploy/compose`: PostgreSQL, RabbitMQ and the services | Development, integration tests |
+| Local | Docker Compose in `deploy/compose`: PostgreSQL, RabbitMQ, Keycloak and the services | Development, integration tests |
 | Cloud (dev / prod) | Kubernetes + Helm charts from `deploy/helm`, images from GHCR | Public deployment required by RSO |
 
 - Images: `ghcr.io/rsocc26/<repository>:<version>`, built by GitHub Actions.
