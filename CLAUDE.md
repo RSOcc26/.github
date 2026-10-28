@@ -1,8 +1,9 @@
 # CLAUDE.md
 
-Guidance for AI coding agents (Claude Code and others) working in this
-repository. The same shared sections appear in every RSOcc26 repository; only
-the "This repository" section differs.
+Guidance for AI coding agents (Claude Code and others) working in any RSOcc26
+repository. This is the **only copy** of the shared guidance: every other
+repository's `CLAUDE.md` imports it (`@../.github/CLAUDE.md`) and adds just a
+"This repository" section. Edit shared rules here, never in another repository.
 
 ## The project
 
@@ -109,18 +110,18 @@ deployable unit:
 See [CONTRIBUTING.md](https://github.com/RSOcc26/.github/blob/main/CONTRIBUTING.md)
 for the full team workflow.
 
-## This repository: `.github`
+## The `.github` repository
 
 Organization-wide defaults: the public profile (`profile/README.md`),
 `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `SUPPORT.md`, issue
 templates and the pull request template. GitHub shows these in every repository
-that has no copy of its own. They are **not** copied into clones, so anything
-an agent needs to know in a service repository must live in that repository.
+that has no copy of its own. They are **not** copied into clones, so clone
+`.github` next to the other repositories for their `CLAUDE.md` import to
+resolve.
 
 It also holds the reusable GitHub Actions workflows called by every repository
 (`.github/workflows/reusable-*.yml`) and the CompanyCentral architecture
 documentation in `docs/`: `architecture.md`, cross-cutting ADRs in `docs/adr/`
 and the RSO requirements traceability in `rso-requirements.md`.
 
-Changes here affect every repository at once, so keep them deliberate and in
-sync with the other repositories' `CLAUDE.md` files.
+Changes here affect every repository at once, so keep them deliberate.
