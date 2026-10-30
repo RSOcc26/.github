@@ -48,6 +48,6 @@ each submission.
 | # | Requirement | Repositories | Intended implementation | Verification | Status |
 |---|---|---|---|---|---|
 | A1 | API gateway | `gateway` | Custom Node.js gateway; Kong/Traefik evaluated in `gateway/docs/request-handling.md` | All `/api/*` traffic passes the gateway; rate limit returns `429` | Scaffolded |
-| A2 | OAuth2/OIDC-based IAM | `service-identity`, `gateway`, `deploy` | Depends on [ADR-0002](adr/0002-identity-provider.md) (custom vs. Keycloak) | Login via OIDC flow; gateway validates tokens | Planned (decision open) |
+| A2 | OAuth2/OIDC-based IAM | `service-identity`, `gateway`, `deploy` | Keycloak as OIDC provider ([ADR-0002](adr/0002-identity-provider.md)); authorization code flow with PKCE in `web`; gateway validates tokens against Keycloak's JWKS | Login via OIDC flow; gateway validates tokens | Planned |
 | A3 | Terraform | `deploy` | Optional `deploy/terraform` for cluster and DNS once a provider is chosen | `terraform plan` in CI | Planned |
 | A4 | Intermediate project presentation | n/a | Present the architecture, the deployed skeleton and the first flow | Presentation held | Planned |

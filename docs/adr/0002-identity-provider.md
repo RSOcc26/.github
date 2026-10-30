@@ -1,8 +1,7 @@
 # 2. Identity provider: custom or external OIDC
 
-- **Status:** Proposed (open decision)
-- **Date:** 2026-10-23
-- **Decide by:** before authentication is implemented in `service-identity` and `gateway`
+- **Status:** Accepted
+- **Date:** 2026-10-27 (proposed 2026-10-23)
 
 ## Context
 
@@ -31,16 +30,34 @@ OIDC subject (`sub`) to users.
 
 ## Decision
 
-Not decided. Until it is:
+**Option B: an external OIDC provider, Keycloak.** CompanyCentral does not
+build its own authentication.
 
-- Users are identified by a stable user ID plus an external subject reference,
-  which works with both options.
-- The gateway's authentication step sits behind one interface ("validate the
-  request and return the user ID"); membership and tenant checks do not depend
-  on the option.
-- No password handling and no Keycloak deployment are implemented.
+- Keycloak handles login, passwords, MFA, sessions and token issuance.
+  The web app signs users in with the authorization code flow with PKCE.
+- The gateway validates Keycloak's tokens (signature against the
+  provider's JWKS, issuer, audience, expiry) and resolves the OIDC subject
+  (`sub`) to the CompanyCentral user ID. Membership and tenant checks are
+  unchanged and stay in the gateway and `service-identity`.
+- `service-identity` stores no passwords or credentials. It keeps users,
+  companies, memberships and invitations, and maps each user to its external
+  subject reference (issuer + `sub`).
+- Keycloak is self-hosted with its own PostgreSQL database; `deploy` provides
+  it for local development (Docker Compose) and the cluster (Helm).
+- Services and the gateway use only standard OIDC (discovery, JWKS, standard
+  claims) configured through environment variables (issuer URL, client IDs),
+  not Keycloak-specific APIs, so the provider stays replaceable.
 
 ## Consequences
 
-The chosen option is recorded by setting this record to *Accepted* before
-authentication is implemented.
+- No password storage, reset, lockout or signing-key rotation code in
+  CompanyCentral; that security-critical work is delegated to Keycloak.
+- The OAuth2/OIDC IAM criterion of the RSO course is met.
+- Keycloak is one more stateful component to deploy, upgrade, back up and
+  monitor, with its own database. Realm and client configuration must be kept
+  as code in `deploy` so environments are reproducible.
+- User data is split: profile and credentials live in Keycloak, companies
+  and memberships in `service-identity`. Invitations must link a Keycloak
+  account to the invited user on first sign-in.
+- Authentication in `service-identity` and `gateway` can now be implemented
+  according to this record.

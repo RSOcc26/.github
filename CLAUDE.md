@@ -66,9 +66,10 @@ deployable unit:
 - Stack: Node.js 24 (see `.nvmrc`), React, PostgreSQL, Apache Kafka, Docker,
   Docker Compose locally, Kubernetes with Helm, GitHub Actions, images in
   GitHub Container Registry. No gRPC, GraphQL or event sourcing for now.
-- Identity: custom identity vs. an external OIDC provider is an **open
-  decision** (ADR-0002). Do not implement either authentication approach
-  until it is decided.
+- Identity: authentication uses **Keycloak** as an external OIDC provider
+  (ADR-0002). Never store passwords or credentials in a service; the gateway
+  validates Keycloak's tokens using standard OIDC only, and `service-identity`
+  maps the OIDC subject to users, companies and memberships.
 - Significant design decisions get an ADR in `docs/adr/`.
 
 ## Working agreement for agents
