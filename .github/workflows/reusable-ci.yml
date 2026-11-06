@@ -4,6 +4,19 @@ name: Reusable CI
 
 on:
   workflow_call:
+    inputs:
+      contract-repositories:
+        description: >-
+          Space-separated RSOcc26 repositories whose contracts this repository's
+          tests compare against (for example ".github service-identity"). Their
+          main branch is cloned next to this repository, and the contract tests
+          fail instead of skipping when one is missing.
+        type: string
+        default: ''
+    secrets:
+      CONTRACTS_TOKEN:
+        description: Read-only token for cloning private contract repositories; not needed while they are public.
+        required: false
 
 permissions:
   contents: read
@@ -53,9 +66,25 @@ jobs:
           cache: npm
       - if: hashFiles('package.json') != ''
         run: npm ci
+      # Contract tests compare copies (for example the tenant-context schema)
+      # with the source repository's main branch, checked out next to this one.
+      - name: Check out contract repositories
+        if: hashFiles('package.json') != '' && inputs.contract-repositories != ''
+        env:
+          REPOSITORIES: ${{ inputs.contract-repositories }}
+          OWNER: ${{ github.repository_owner }}
+          TOKEN: ${{ secrets.CONTRACTS_TOKEN || github.token }}
+        run: |
+          for repository in $REPOSITORIES; do
+            git clone --quiet --depth 1 --branch main \
+              "https://x-access-token:${TOKEN}@github.com/${OWNER}/${repository}.git" "../${repository}"
+            echo "Contract source: ${repository}@$(git -C "../${repository}" rev-parse --short HEAD)"
+          done
       - if: hashFiles('package.json') != ''
         run: npm run lint --if-present
       - if: hashFiles('package.json') != ''
+        env:
+          CONTRACT_REPOSITORIES: ${{ inputs.contract-repositories }}
         run: npm test --if-present
       - if: hashFiles('package.json') != ''
         run: npm run build --if-present

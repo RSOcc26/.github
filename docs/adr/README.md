@@ -11,3 +11,4 @@ consequences. Status is *Proposed* or *Accepted*.
 |---|---|---|
 | [0001](0001-multi-tenancy.md) | Multi-tenant data isolation | Accepted |
 | [0002](0002-identity-provider.md) | Identity provider: custom or external OIDC | Accepted |
+| [0003](0003-user-lifecycle.md) | User lifecycle: administration and Keycloak consistency | Accepted |
