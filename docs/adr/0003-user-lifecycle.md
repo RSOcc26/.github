@@ -50,9 +50,11 @@ gap is a security window.
   `deleted`, erases email and names (the ID stays, so references in other
   services remain valid and show a deleted user), deactivates all memberships,
   writes `identity.user.deleted` to its outbox and queues a "delete account in
-  Keycloak" task. A worker runs the task with retries until it succeeds
-  (a missing account counts as success). The email is free for a new account
-  at once.
+  Keycloak" task. A worker runs the task with retries and exponential
+  backoff (a missing account counts as success). After 50 failed attempts
+  (about eight hours) the task is parked and logged as an error for an
+  operator, so a permanent failure cannot retry forever; the local user stays
+  anonymized either way. The email is free for a new account at once.
 - **Access ends at once:** the gateway resolves the token subject to the
   CompanyCentral user through identity on every request (short cache) and
   rejects deleted users, even before the Keycloak token expires.
@@ -60,8 +62,8 @@ gap is a security window.
   users. An account that Keycloak reports as gone (a per-user `404`, never an
   empty list) is anonymized as above; changed emails and names are copied.
   The number of deletions per run is capped, so a misconfiguration cannot wipe
-  users. Sign-in also repairs an email conflict left by a console deletion
-  instead of failing.
+  users. Sign-in, admin edits and reconciliation also repair an email
+  conflict left by a console deletion instead of failing.
 - **Provider independence:** the Keycloak Admin API is used only by identity,
   behind one adapter module (`src/idp/`). This narrows ADR-0002's "standard
   OIDC only" rule: the gateway and other services still use standard OIDC
@@ -72,8 +74,10 @@ gap is a security window.
 
 ## Consequences
 
-- One path for user changes, with no lost or half-done deletions: every step
-  after the database commit is retried from a durable task.
+- One path for user changes, with no lost deletions: every step after the
+  database commit is retried from a durable task. A task that keeps failing
+  is parked for an operator rather than retried forever, so a Keycloak
+  account can outlive its anonymized user until someone acts on the alert.
 - Identity needs a Keycloak service account with `manage-users`; its secret is
   a Kubernetes Secret like the database passwords.
 - Every request costs one cached lookup in identity; the gateway depends on
