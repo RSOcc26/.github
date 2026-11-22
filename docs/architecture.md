@@ -238,9 +238,12 @@ Decided in [ADR-0003](adr/0003-user-lifecycle.md):
   Secrets for credentials. Secrets are never committed.
 - Probes use `/health/live` and `/health/ready`. Prometheus scrapes `/metrics`.
   Logs are structured JSON on stdout, collected centrally.
-- The cloud provider is not chosen yet. The manifests avoid provider-specific
-  resources so any managed Kubernetes works. No paid resources are provisioned
-  without separate approval.
+- Cloud: Azure AKS, Free tier, two `Standard_B2ms` nodes in West Europe, paid
+  from student credits only and stopped when not in use
+  ([ADR-0004](adr/0004-cloud-provider.md)). PostgreSQL and Kafka run in the
+  cluster; hostnames use `sslip.io` on the load balancer IP. The manifests
+  stay provider-neutral. Nothing beyond the credits is provisioned without a
+  new decision.
 
 Target CI/CD pipeline: lint and test → build → container image → publish to
 GHCR → deploy with Helm. The first two steps run through the organization's
