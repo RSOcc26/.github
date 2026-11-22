@@ -154,16 +154,28 @@ terraform apply import.tfplan && rm import.tfplan
 
 How it works:
 
-1. A workflow job asks GitHub for a signed OIDC token. The token names the
-   repository and the job's *environment*, for example
-   `repo:RSOcc26/gateway:environment:dev`.
+1. A workflow job asks GitHub for a signed OIDC token. Its *subject* names
+   the organization and repository, each with its numeric ID, and the job's
+   *environment*, for example
+   `repo:RSOcc26@345155378/gateway@1428425800:environment:dev`.
 2. `azure/login` hands the token to Entra ID.
 3. Entra ID gives back an Azure token, valid for about an hour, if that
    subject matches one of the identity's federated credentials.
 
 The trusted subjects are `environment:dev` and `environment:prod` for each of
-the 7 deploying repositories, plus `repo:RSOcc26/deploy:pull_request` for the
-plan check.
+the 7 deploying repositories, plus `…/deploy@<id>:pull_request` for the plan
+check.
+
+- **The IDs in the subject:** our first version trusted
+  `repo:RSOcc26/deploy:pull_request`, the format most guides show. The first
+  CI run failed with `AADSTS700213: No matching federated identity record
+  found for presented assertion subject
+  'repo:RSOcc26@345155378/deploy@1430878369:pull_request'`. GitHub now
+  includes the owner and repository IDs by default, so a repository that is
+  deleted and recreated under the same name (by anyone) gets a new ID and is
+  not trusted. The IDs are public; look one up with
+  `gh api repos/RSOcc26/<repo> -q .id`. Changing the subjects was an in-place
+  update (`0 to add, 15 to change, 0 to destroy`).
 
 - **Why a managed identity:** the usual way is an *app registration* (service
   principal), but the university tenant does not allow students to create
