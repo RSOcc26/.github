@@ -40,7 +40,7 @@ jobs:
   deploy:
     name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    # Sets the OIDC subject to repo:<org>/<repo>:environment:<env>
+    # Sets the OIDC subject to repo:<org>@<org-id>/<repo>@<repo-id>:environment:<env>
     environment: ${{ inputs.environment }}
     env:
       RELEASE: ${{ github.event.repository.name }}
