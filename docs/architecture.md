@@ -78,7 +78,7 @@ temporarily unavailable.
   service's internal `/v1/...`. Breaking changes need a new version (`v2`).
 - Every call has a timeout. Retries are only for idempotent requests, with
   backoff. Callers fail fast when a dependency is unavailable. A circuit
-  breaker is planned once the services exist.
+  breaker is planned (not built yet).
 - Errors use `application/problem+json` (RFC 9457).
 
 Every service exposes:
@@ -89,6 +89,10 @@ Every service exposes:
 | `GET /health/ready` | Readiness: database reachable, migrations applied, broker connected. |
 | `GET /metrics` | Prometheus text format. |
 | `GET /api-docs` | The service's OpenAPI 3.1 document. |
+
+Contracts between components (for example the tenant-context token the
+gateway signs) are in [docs/contracts](contracts/). Each service's events are
+specified in its repository as AsyncAPI 3.0 (`docs/asyncapi.yaml`).
 
 ## 5. Asynchronous communication (events)
 
@@ -147,6 +151,7 @@ when implemented.
 | Event | Producer | Main consumers |
 |---|---|---|
 | `identity.company.created` | identity | access |
+| `identity.user.updated` / `.deleted` | identity | services that copy user data (anonymize on delete, ADR-0003) |
 | `identity.membership.added` / `.removed` | identity | access, gateway (cache invalidation) |
 | `access.application.enabled` / `.disabled` | access | web (via API), interested services |
 | `access.role.assigned` / `.revoked` | access | gateway (cache invalidation) |
@@ -198,6 +203,28 @@ service.
 
 Only **one** authentication system is implemented: Keycloak, as decided in
 ADR-0002. CompanyCentral stores no passwords or credentials.
+
+Today the gateway validates the Keycloak token (issuer, audience `gateway`,
+JWKS from OIDC discovery), resolves the user through identity's
+`/v1/internal/users/by-subject/{sub}` and forwards an ES256-signed context
+(`typ: tenant-context+jwt`) per target service. Company-scoped routes return
+`501` until membership checks exist; rate limiting, the circuit breaker, Kafka
+cache invalidation and the combined `/api-docs` are not built yet.
+
+### User administration
+
+Decided in [ADR-0003](adr/0003-user-lifecycle.md):
+
+- **One path:** accounts are changed only through `service-identity`
+  (`/v1/admin/users`, for the Keycloak realm role `platform-admin`), which is the
+  only writer to Keycloak (Admin API, dedicated service account).
+- **Delete anonymizes:** the user row is kept with email and names erased, so
+  IDs referenced by other services stay valid; the Keycloak account is deleted by
+  a retried task and `identity.user.deleted` is published through the outbox.
+- **Access ends at once:** the gateway resolves the token subject to the
+  CompanyCentral user on every request (short cache) and rejects deleted users.
+- **Reconciliation:** a periodic job in identity copies changes made in the
+  Keycloak console and anonymizes users whose account is confirmed gone.
 
 ## 8. Deployment
 
