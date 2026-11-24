@@ -232,7 +232,7 @@ gh variable list --org RSOcc26
 
 ## What uses this
 
-- `.github/.github/workflows/reusable-deploy.yml` (CD, chapter 4): signs in
+- `.github/.github/workflows/reusable-deploy.yml` (CD, [chapter 5](05-continuous-deployment.md)): signs in
   as the identity, skips with a warning if the cluster is stopped, otherwise
   runs `helm upgrade --install --rollback-on-failure` with the new image tag.
 - The `Terraform` job in `deploy/.github/workflows/validate.yml`: on every PR
