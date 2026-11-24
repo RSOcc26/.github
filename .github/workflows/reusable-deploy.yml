@@ -1,0 +1,95 @@
+# Shared deployment for every RSOcc26 workload (.github#26). Signs in to Azure
+# without secrets (GitHub OIDC, federated credential on the rso-github-actions
+# identity, see deploy/terraform/github-identity.tf) and upgrades this
+# repository's Helm release to the image just published:
+#
+#   deploy-dev:
+#     needs: publish
+#     if: needs.publish.outputs.image != ''
+#     permissions:
+#       contents: read
+#       id-token: write
+#     uses: RSOcc26/.github/.github/workflows/reusable-deploy.yml@main
+#     with:
+#       environment: dev
+#
+# Approval rules for prod belong on the repository's "prod" environment.
+name: Reusable deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: dev or prod; also the GitHub environment the job runs in.
+        type: string
+        required: true
+      image-tag:
+        description: Image tag to deploy; defaults to the commit that triggered the run.
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  # One rollout per release at a time; a newer commit waits, it does not cancel
+  group: deploy-${{ github.repository }}-${{ inputs.environment }}
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    # Sets the OIDC subject to repo:<org>@<org-id>/<repo>@<repo-id>:environment:<env>
+    environment: ${{ inputs.environment }}
+    env:
+      RELEASE: ${{ github.event.repository.name }}
+      NAMESPACE: companycentral-${{ inputs.environment }}
+      VALUES_ENV: ${{ inputs.environment }}
+      TAG: ${{ inputs.image-tag || format('sha-{0}', github.sha) }}
+    steps:
+      - name: Check environment
+        run: |
+          case "$VALUES_ENV" in dev|prod) ;; *) echo "::error::unknown environment: $VALUES_ENV"; exit 1 ;; esac
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: RSOcc26/deploy
+          path: deploy
+
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # The cluster runs on demand (ADR-0004); a merge while it is stopped is
+      # not a failure, it is deployed with the next run after a start.
+      - name: Cluster running?
+        id: power
+        run: |
+          state=$(az aks show -g rso-rg -n rso-cluster --query powerState.code -o tsv)
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          if [ "$state" != Running ]; then
+            echo "::warning::rso-cluster is $state; skipped deploying $RELEASE:$TAG"
+          fi
+
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        if: steps.power.outputs.state == 'Running'
+        with:
+          version: v4.3.2
+
+      - name: Helm upgrade
+        if: steps.power.outputs.state == 'Running'
+        run: |
+          az aks get-credentials -g rso-rg -n rso-cluster --file "$RUNNER_TEMP/kubeconfig"
+          export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
+          # --rollback-on-failure: a rollout that is not ready in time is rolled
+          # back to the previous release and fails this job
+          helm upgrade --install "$RELEASE" deploy/helm/charts/service \
+            -n "$NAMESPACE" \
+            -f "deploy/helm/values/common/$RELEASE.yaml" \
+            -f "deploy/helm/values/$VALUES_ENV/$RELEASE.yaml" \
+            --set image.tag="$TAG" \
+            --wait --timeout 5m --rollback-on-failure
+          echo "Deployed \`$RELEASE:$TAG\` to \`$NAMESPACE\`" >> "$GITHUB_STEP_SUMMARY"
