@@ -14,6 +14,8 @@ This log explains *how we got here*, in order.
 | 1 | [CI pipeline and container images](01-ci-and-container-images.md) | .github#25 |
 | 2 | [Cluster access, Ingress and TLS](02-cluster-ingress-tls.md) | deploy#10 |
 | 3 | [Terraform and the GitHub Actions identity](03-terraform-and-github-identity.md) | deploy#10, .github#26 |
+| 4 | [Platform, Keycloak and the first deploy](04-platform-keycloak-first-deploy.md) | deploy#12, deploy#15 |
+| 5 | [Continuous deployment](05-continuous-deployment.md) | .github#26, .github#30 |
 
 ## How the pieces fit
 
@@ -23,13 +25,13 @@ This log explains *how we got here*, in order.
  laptop: az, kubectl, helm ──HTTPS──▶ Azure (rso-cluster) ◀─┘ pulls images
                                           │
  browser ──HTTPS──▶ public IP ──▶ Traefik (Ingress) ──▶ web  (/)
-                                                    └─▶ gateway (/api/*) ──▶ services
+                                                    ├─▶ gateway (/api/*) ──▶ services
+                                                    └─▶ keycloak (/idp/*)
 ```
 
 There is no SSH anywhere. `az` talks to Azure's management API, and `kubectl`
 and `helm` talk to the cluster's Kubernetes API, all over HTTPS from the
-machine that runs them (a laptop today, a GitHub Actions runner once CD
-exists).
+machine that runs them (a laptop, or a GitHub Actions runner for CD).
 
 ## Conventions in this log
 
